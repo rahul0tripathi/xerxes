@@ -7,8 +7,8 @@
   },
   "nodes": [
     {
-      "host": "tcp://13.127.2.211:2375",
-      "ip": "13.127.2.211",
+      "host": <HOST-DOCKER-TCP-ADDR>,
+      "ip":<HOSTIP>,
       "version": "1.40" ,
       "id": 1
     }
