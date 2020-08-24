@@ -1,0 +1,16 @@
+{
+  "master": {
+    "host": "unix:///var/run/docker.sock",
+    "ip": "0.0.0.0",
+    "version": "1.40",
+    "id" : 0
+  },
+  "nodes": [
+    {
+      "host": "tcp://13.127.2.211:2375",
+      "ip": "13.127.2.211",
+      "version": "1.40" ,
+      "id": 1
+    }
+  ]
+}
