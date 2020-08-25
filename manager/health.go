@@ -59,12 +59,11 @@ var (
 	LockedInstances = []string{}
 	ConnPool        = map[int]*client.Client{}
 	Locked = false
-	confFile = func() string { HOME , _ := os.UserHomeDir()
-	return HOME }() + "/.orchestrator/configuration/discovery.json"
+	confFile = config.ConfigDir + "/discovery.json"
 )
 
 func init() {
-	err := config.LoadHosts("$HOME/.orchestrator/configuration")
+	err := config.LoadHosts(config.ConfigDir)
 	if err != nil {
 		panic(err)
 	}
@@ -87,7 +86,6 @@ func init() {
 		}
 	}
 }
-
 func Emergency(server standalone) {
 	Locked = true
 	defer func() { Locked = false }()
@@ -108,7 +106,7 @@ func Emergency(server standalone) {
 	if err != nil {
 		return
 	}
-	fmt.Println("Container Resatrted")
+	fmt.Println("Container Restarted")
 	err = kong.AddUpstreamTarget(config.Config.Services[server.ServiceId].KongConf, kong.UpstreamTarget{
 		Target: server.HostIp + ":" + strconv.FormatUint(uint64(server.BindingPort), 10),
 		Weight: 100,
