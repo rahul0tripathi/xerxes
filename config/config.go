@@ -3,12 +3,14 @@ package config
 import (
 	"fmt"
 	"github.com/spf13/viper"
+	"os"
 )
 
 var (
 	Config   config
 	KongConf Kong
 	Nodelist NodeList
+	ConfigDir string
 )
 
 func LoadServices(file string) error {
@@ -45,4 +47,9 @@ func LoadHosts(file string) error {
 		return err
 	}
 	return services.Unmarshal(&Nodelist)
+}
+func init(){
+	//ConfigDir = "./configuration"
+	ConfigDir = func() string { HOME , _ := os.UserHomeDir()
+		return HOME }() + "/.orchestrator/configuration"
 }
