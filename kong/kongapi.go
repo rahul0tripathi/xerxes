@@ -33,7 +33,7 @@ func CreateNewUpstream(service config.KongDesc) error {
 	if err != nil {
 		return err
 	}
-	if res.StatusCode == 200 || res.StatusCode == 409 {
+	if res.StatusCode <= 400 || res.StatusCode == 409 {
 		fmt.Println("OK")
 		return nil
 	} else {
