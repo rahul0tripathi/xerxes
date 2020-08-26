@@ -87,7 +87,7 @@ func InitServices() {
 				func() {
 					if len(config.Nodelist.Nodes) > 0 {
 						if nodeRoundRobin == 0 {
-							registerService(service, id, config.Nodelist.Master, false)
+							registerService(service, id, config.Nodelist.Master, true)
 							nodeRoundRobin += 1
 						} else {
 							node_ip := config.Nodelist.Nodes[nodeRoundRobin-1]
@@ -98,10 +98,10 @@ func InitServices() {
 									return 0
 								}
 							}()
-							registerService(service, id, node_ip, false)
+							registerService(service, id, node_ip, true)
 						}
 					} else {
-						registerService(service, id, config.Nodelist.Master, false)
+						registerService(service, id, config.Nodelist.Master, true)
 					}
 				}()
 			} else {
