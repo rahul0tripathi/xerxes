@@ -7,6 +7,7 @@ import (
 	"github.com/rahultripathidev/docker-utility/config"
 	"github.com/rahultripathidev/docker-utility/kong"
 	"github.com/rahultripathidev/docker-utility/service"
+	"github.com/rahultripathidev/docker-utility/update"
 	"github.com/urfave/cli/v2"
 	"os"
 	"log"
@@ -128,6 +129,25 @@ func main() {
 					}
 					table.Render()
 					return nil
+				},
+			},
+			{
+				Name:    "update",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:  "service",
+						Usage: "Id of the service to update",
+					},
+					&cli.BoolFlag{
+						Name: "userNode",
+						Usage: "number of containers to shutdown to",
+					},
+				},
+				Aliases: []string{"update"},
+				Usage:   "Update a service machines",
+				Action:  func(c *cli.Context) error {
+					err := update.Update(c.String("service"),c.Bool("useNode"))
+					return err
 				},
 			},
 			{

@@ -25,8 +25,8 @@ type (
 		ContainerId string `json:"containerId"`
 		BindingPort uint32 `json:"bindingPort"`
 		Status      int    `json:"status"`
-		Id int `json:"host_id"`
-		ServiceId string `json:"service_id"`
+		Id          int    `json:"host_id"`
+		ServiceId   string `json:"service_id"`
 	}
 	standaloneServers struct {
 		Avaliable []standalone `json:"avaliable"`
@@ -34,23 +34,23 @@ type (
 )
 
 var (
-	nodeRoundRobin = 0
+	nodeRoundRobin    = 0
 	DiscoverWriteLock = sync.RWMutex{}
-	confFile = config.ConfigDir + "/discovery.json"
+	confFile          = config.ConfigDir + "/discovery.json"
 )
 
 func GetActiveServices() ([]swarm.Service, error) {
 	ctx := context.Background()
 	return client.DockerClient.ServiceList(ctx, types.ServiceListOptions{})
 }
-func GetActiveContainers() (standaloneServers , error){
+func GetActiveContainers() (standaloneServers, error) {
 	discovery, _ := ioutil.ReadFile(confFile)
 	avaliableServers := standaloneServers{}
 	err := json.Unmarshal(discovery, &avaliableServers)
 	if err != nil {
-		return avaliableServers , err
+		return avaliableServers, err
 	}
-	return avaliableServers , nil
+	return avaliableServers, nil
 }
 func InitServices() {
 	fmt.Print("\nInitalizing Services ....")
@@ -69,14 +69,14 @@ func InitServices() {
 		switch service.Type {
 		case "swarm":
 			if _, ok := alreadyRunning[id]; !ok {
-				registerService(service, id,config.Nodelist.Master,true)
+				registerService(service, id, config.Nodelist.Master, true)
 			} else {
-				fmt.Print("Service Already Exists [",id,"] ... ")
+				fmt.Print("Service Already Exists [", id, "] ... ")
 			}
 		case "standalone":
 			running := false
 			for _, conf := range avaliableServers.Avaliable {
-				for _ , ports := range service.HostPortRange{
+				for _, ports := range service.HostPortRange {
 					if conf.BindingPort == ports {
 						running = true
 						break
@@ -92,28 +92,28 @@ func InitServices() {
 						} else {
 							node_ip := config.Nodelist.Nodes[nodeRoundRobin-1]
 							nodeRoundRobin = func() int {
-								if nodeRoundRobin  < len(config.Nodelist.Nodes) {
+								if nodeRoundRobin < len(config.Nodelist.Nodes) {
 									return nodeRoundRobin + 1
 								} else {
 									return 0
 								}
 							}()
-							registerService(service, id, node_ip,false)
+							registerService(service, id, node_ip, false)
 						}
-					}else{
-						registerService(service, id,config.Nodelist.Master,false)
+					} else {
+						registerService(service, id, config.Nodelist.Master, false)
 					}
 				}()
 			} else {
-				fmt.Print("Service Already Exists [",id,"] ....")
+				fmt.Print("Service Already Exists [", id, "] ....")
 			}
 		}
 
 	}
 	fmt.Print("OK\n")
 }
-func registerService(service config.Services, id string, node config.Daemon ,init bool) {
-	fmt.Print("\nRegistering New Service [",id,"] on [",node.Host,"]....")
+func registerService(service config.Services, id string, node config.Daemon, init bool) {
+	fmt.Print("\nRegistering New Service [", id, "] on [", node.Host, "]....")
 	ctx := context.Background()
 	switch service.Type {
 	case "swarm":
@@ -152,17 +152,17 @@ func registerService(service config.Services, id string, node config.Daemon ,ini
 			}
 			_, err := client.DockerClient.ServiceCreate(ctx, servicetask, types.ServiceCreateOptions{})
 			if err != nil {
-				fmt.Print("Failed To Create service  [",id,"] error ", err)
+				fmt.Print("Failed To Create service  [", id, "] error ", err)
 				return
 			} else {
-				err := kong.CreateService(id,service,config.Nodelist.Master.Ip,int(service.Hostport))
-				if err != nil{
-					fmt.Print("Failed To Create service  [",id,"] error ", err)
+				err := kong.CreateService(id, service, config.Nodelist.Master.Ip, int(service.Hostport))
+				if err != nil {
+					fmt.Print("Failed To Create service  [", id, "] error ", err)
 					return
 				}
-				err = kong.CreateNewRoute(id,service)
-				if err != nil{
-					fmt.Print("Failed To Create service  [",id,"] error ", err)
+				err = kong.CreateNewRoute(id, service)
+				if err != nil {
+					fmt.Print("Failed To Create service  [", id, "] error ", err)
 					return
 				}
 			}
@@ -218,42 +218,42 @@ func registerService(service config.Services, id string, node config.Daemon ,ini
 			}
 			containerResp, err := dockerClient.ContainerCreate(ctx, &containerConfig, &hostConfig, nil, id+"_"+strconv.FormatUint(uint64(Hostport), 10))
 			if err != nil {
-				fmt.Print("Failed To Create service  [",id,"] error ", err)
+				fmt.Print("Failed To Create service  [", id, "] error ", err)
 				return
 			}
 			if err := dockerClient.ContainerStart(ctx, containerResp.ID, types.ContainerStartOptions{}); err != nil {
-				fmt.Print("Failed To Create service  [",id,"] error ", err)
+				fmt.Print("Failed To Create service  [", id, "] error ", err)
 				return
 			}
-			avaliableServers.Avaliable = append(avaliableServers.Avaliable, standalone{ContainerId: containerResp.ID, BindingPort: Hostport , HostIp: HostIp , Status: 1,Id: node.Id,ServiceId: id})
+			avaliableServers.Avaliable = append(avaliableServers.Avaliable, standalone{ContainerId: containerResp.ID, BindingPort: Hostport, HostIp: HostIp, Status: 1, Id: node.Id, ServiceId: id})
 			str, _ := json.Marshal(avaliableServers)
 			DiscoverWriteLock.Lock()
 			err = ioutil.WriteFile(confFile, str, os.ModePerm)
 			DiscoverWriteLock.Unlock()
 			func() {
 				if init == true {
-					err := kong.CreateService(id, service, "",0)
+					err := kong.CreateService(id, service, "", 0)
 					if err != nil {
-						fmt.Print("Failed To Create service  [",id,"] error ", err)
+						fmt.Print("Failed To Create service  [", id, "] error ", err)
 						return
 					}
-					err =  kong.CreateNewRoute(id, service)
+					err = kong.CreateNewRoute(id, service)
 					if err != nil {
-						fmt.Print("Failed To Create service  [",id,"] error ", err)
+						fmt.Print("Failed To Create service  [", id, "] error ", err)
 						return
 					}
-					err =  kong.CreateNewUpstream(service.KongConf)
+					err = kong.CreateNewUpstream(service.KongConf)
 					if err != nil {
-						fmt.Print("Failed To Create service  [",id,"] error ", err)
+						fmt.Print("Failed To Create service  [", id, "] error ", err)
 						return
 					}
 				}
-				err = kong.AddUpstreamTarget(service.KongConf,kong.UpstreamTarget{
-					Target: HostIp+":"+strconv.FormatUint(uint64(Hostport), 10),
+				err = kong.AddUpstreamTarget(service.KongConf, kong.UpstreamTarget{
+					Target: HostIp + ":" + strconv.FormatUint(uint64(Hostport), 10),
 					Weight: 100,
 				})
 				if err != nil {
-					fmt.Print("Failed To Create service  [",id,"] error ", err)
+					fmt.Print("Failed To Create service  [", id, "] error ", err)
 					return
 				}
 			}()
@@ -261,8 +261,38 @@ func registerService(service config.Services, id string, node config.Daemon ,ini
 		}()
 	}
 }
-func Scale(id string, factor uint64 , useNode bool) {
-	fmt.Print("\nScaling Service [",id,"] to [",factor,"]....")
+func ScalebyService(id string, service config.Services, factor int, useNode bool) {
+	for i := 0; i < factor; i++ {
+		func() {
+			if len(config.Nodelist.Nodes) > 0 {
+				if nodeRoundRobin == 0 && useNode == false {
+					registerService(service, id, config.Nodelist.Master, false)
+					nodeRoundRobin += 1
+				} else if useNode == true || nodeRoundRobin > 0 {
+					node_ip := config.Daemon{}
+					if useNode == true && nodeRoundRobin-1 < 0 {
+						node_ip = config.Nodelist.Nodes[nodeRoundRobin]
+					} else {
+						node_ip = config.Nodelist.Nodes[nodeRoundRobin-1]
+					}
+					registerService(service, id, node_ip, false)
+					nodeRoundRobin = func() int {
+						if nodeRoundRobin < len(config.Nodelist.Nodes) {
+							return nodeRoundRobin + 1
+						} else {
+							return 0
+						}
+					}()
+				}
+			} else {
+				registerService(service, id, config.Nodelist.Master, false)
+			}
+		}()
+
+	}
+}
+func Scale(id string, factor uint64, useNode bool) {
+	fmt.Print("\nScaling Service [", id, "] to [", factor, "]....")
 	ctx := context.Background()
 	avaliable, err := GetActiveServices()
 	if err != nil {
@@ -284,18 +314,18 @@ func Scale(id string, factor uint64 , useNode bool) {
 		if serviceMode.Replicated != nil {
 			serviceMode.Replicated.Replicas = &factor
 		} else {
-			fmt.Print("Failed To Scale service  [",id,"] error ","scale can only be used with replicated mode")
+			fmt.Print("Failed To Scale service  [", id, "] error ", "scale can only be used with replicated mode")
 			return
 		}
 
 		response, err := client.DockerClient.ServiceUpdate(ctx, service.ID, service.Version, service.Spec, types.ServiceUpdateOptions{})
 		if err != nil {
-			fmt.Print("Failed To Scale service  [",id,"] error ",err)
+			fmt.Print("Failed To Scale service  [", id, "] error ", err)
 			return
 		}
 
 		for _, warning := range response.Warnings {
-			fmt.Print("Warning while Scaling service  [",id,"] error ",warning)
+			fmt.Print("Warning while Scaling service  [", id, "] error ", warning)
 		}
 		fmt.Print("OK\n")
 	} else {
@@ -303,125 +333,101 @@ func Scale(id string, factor uint64 , useNode bool) {
 			discovery, _ := ioutil.ReadFile(confFile)
 			avaliableServers := standaloneServers{}
 			err := json.Unmarshal(discovery, &avaliableServers)
-			if err !=nil{
-				fmt.Print("Failed To Scale service  [",id,"] error ",err)
+			if err != nil {
+				fmt.Print("Failed To Scale service  [", id, "] error ", err)
 			}
 			currentCount := 0
 			for _, server := range avaliableServers.Avaliable {
 				if server.ServiceId == id {
-					currentCount ++
+					currentCount++
 				}
 			}
 			if currentCount > int(factor) {
-				err = Shutdown(id ,"standalone", currentCount-int(factor) )
-				if err !=nil{
-					fmt.Print("Failed To Scale service  [",id,"] error ",err)
+				err = Shutdown(id, "standalone", currentCount-int(factor))
+				if err != nil {
+					fmt.Print("Failed To Scale service  [", id, "] error ", err)
 				}
-			}else{
-				for i := 0; i < int(factor)-currentCount; i++ {
-					func() {
-						if len(config.Nodelist.Nodes) > 0 {
-							if nodeRoundRobin == 0 && useNode == false{
-								registerService(config.Config.Services[id], id, config.Nodelist.Master, false)
-								nodeRoundRobin += 1
-							} else if useNode == true || nodeRoundRobin >0 {
-								node_ip := config.Daemon{}
-								if useNode == true && nodeRoundRobin-1 < 0{
-									node_ip = config.Nodelist.Nodes[nodeRoundRobin]
-								}else{
-									node_ip = config.Nodelist.Nodes[nodeRoundRobin-1]
-								}
-								useNode = false
-								registerService(config.Config.Services[id], id, node_ip,false)
-								nodeRoundRobin = func() int {
-									if nodeRoundRobin  < len(config.Nodelist.Nodes) {
-										return nodeRoundRobin + 1
-									} else {
-										return 0
-									}
-								}()
-							}
-						}else{
-							registerService(config.Config.Services[id], id,config.Nodelist.Master,false)
-						}
-					}()
-
-				}
+			} else {
+				ScalebyService(id, config.Config.Services[id], int(factor)-currentCount, useNode)
 			}
 			fmt.Print("OK\n")
-
 		}
 	}
+
 }
-func Shutdown(service string , serviceType string , containers int) error {
-	fmt.Print("\nShutting Service Containers [",service,"] by [",containers,"]....")
+func Shutdown(service string, serviceType string, containers int) error {
+	fmt.Print("\nShutting Service Containers [", service, "] by [", containers, "]....")
 	switch serviceType {
-	case "swarm":return func() error {
-		fmt.Print("Failed To shutdown service  [",service,"] error ","Cannot shutdown swarm service , scale the containers to 0")
-	return nil
-	}()
-	case "standalone":return func() error {
-		DiscoverWriteLock.Lock()
-		defer DiscoverWriteLock.Unlock()
-		discovery, _ := ioutil.ReadFile(confFile)
-		avaliableServers := standaloneServers{}
-		NewavaliableServer := standaloneServers{
-			Avaliable: []standalone{},
-		}
-		servicesCount := 0
-		err := json.Unmarshal(discovery, &avaliableServers)
-		if err != nil {
-			fmt.Print("Failed To shutdown service  [",service,"] error ",err)
-		}
-		for _, server := range avaliableServers.Avaliable {
-			if containers >0 {
-				if servicesCount == containers {
-					break
-				}
+	case "swarm":
+		return func() error {
+			fmt.Print("Failed To shutdown service  [", service, "] error ", "Cannot shutdown swarm service , scale the containers to 0")
+			return nil
+		}()
+	case "standalone":
+		return func() error {
+			DiscoverWriteLock.Lock()
+			defer DiscoverWriteLock.Unlock()
+			discovery, _ := ioutil.ReadFile(confFile)
+			avaliableServers := standaloneServers{}
+			NewavaliableServer := standaloneServers{
+				Avaliable: []standalone{},
 			}
-			if server.ServiceId == service {
-				err := kong.AddUpstreamTarget(config.Config.Services[server.ServiceId].KongConf, kong.UpstreamTarget{
-					Target: server.HostIp + ":" + strconv.FormatUint(uint64(server.BindingPort), 10),
-					Weight: 0,
-				})
-				if err != nil {
-					fmt.Print("Failed To shutdown service  [",service,"] error ",err)
-					return err
-				}
-				var Dockerclient = &DockerClient.Client{}
-				if server.Id == 0 {
-					host := config.Nodelist.Master
-					Dockerclient, err = DockerClient.NewClient(host.Host, host.Version, nil, nil)
-				} else {
-					for _, host := range config.Nodelist.Nodes {
-						if host.Id == server.Id {
-							Dockerclient, err = DockerClient.NewClient(host.Host, host.Version, nil, nil)
-							break
-						}
+			servicesCount := 0
+			err := json.Unmarshal(discovery, &avaliableServers)
+			if err != nil {
+				fmt.Print("Failed To shutdown service  [", service, "] error ", err)
+			}
+			for _, server := range avaliableServers.Avaliable {
+				if containers > 0 {
+					if servicesCount == containers {
+						break
 					}
 				}
-				err = Dockerclient.ContainerRemove(context.Background(), server.ContainerId, types.ContainerRemoveOptions{
-					Force: true,
-				})
-				if err != nil {
-					fmt.Print("Failed To shutdown service  [",service,"] error ",err)
+				if server.ServiceId == service {
+					err := kong.AddUpstreamTarget(config.Config.Services[server.ServiceId].KongConf, kong.UpstreamTarget{
+						Target: server.HostIp + ":" + strconv.FormatUint(uint64(server.BindingPort), 10),
+						Weight: 0,
+					})
+					if err != nil {
+						fmt.Print("Failed To shutdown service  [", service, "] error ", err)
+						return err
+					}
+					var Dockerclient = &DockerClient.Client{}
+					if server.Id == 0 {
+						host := config.Nodelist.Master
+						Dockerclient, err = DockerClient.NewClient(host.Host, host.Version, nil, nil)
+					} else {
+						for _, host := range config.Nodelist.Nodes {
+							if host.Id == server.Id {
+								Dockerclient, err = DockerClient.NewClient(host.Host, host.Version, nil, nil)
+								break
+							}
+						}
+					}
+					err = Dockerclient.ContainerRemove(context.Background(), server.ContainerId, types.ContainerRemoveOptions{
+						Force: true,
+					})
+					if err != nil {
+						fmt.Print("Failed To shutdown service  [", service, "] error ", err)
+					}
+					servicesCount++
+				} else {
+					NewavaliableServer.Avaliable = append(NewavaliableServer.Avaliable, server)
 				}
-				servicesCount ++
-			} else {
-				NewavaliableServer.Avaliable = append(NewavaliableServer.Avaliable, server)
 			}
-		}
-		if servicesCount >0 {
-			NewavaliableServer.Avaliable = append(NewavaliableServer.Avaliable,avaliableServers.Avaliable[servicesCount:]...)
-		}
-		str, _ := json.Marshal(NewavaliableServer)
-		err = ioutil.WriteFile(confFile, str, os.ModePerm)
-		if err != nil {
-			fmt.Print("Failed To shutdown service  [",service,"] error ",err)
-			return err
-		}
-		fmt.Print("OK\n")
-		return nil }()
-	default: return errors.New("Failed To shutdown service  ["+service+"] error"+"invalid type "+serviceType)
+			if servicesCount > 0 {
+				NewavaliableServer.Avaliable = append(NewavaliableServer.Avaliable, avaliableServers.Avaliable[servicesCount:]...)
+			}
+			str, _ := json.Marshal(NewavaliableServer)
+			err = ioutil.WriteFile(confFile, str, os.ModePerm)
+			if err != nil {
+				fmt.Print("Failed To shutdown service  [", service, "] error ", err)
+				return err
+			}
+			fmt.Print("OK\n")
+			return nil
+		}()
+	default:
+		return errors.New("Failed To shutdown service  [" + service + "] error" + "invalid type " + serviceType)
 	}
 }
