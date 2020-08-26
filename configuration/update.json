@@ -1,0 +1,10 @@
+{
+  "services": {
+    "sample2": {
+      "image": "daisuke_adminserver:latest",
+      "image_uri": "daisuke_adminserver",
+      "type": "rolling",
+      "factor": 1
+    }
+  }
+}
