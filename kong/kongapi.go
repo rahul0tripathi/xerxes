@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/rahultripathidev/docker-utility/config"
+	definitions "github.com/rahultripathidev/docker-utility/types"
 	"io/ioutil"
 	"net/http"
 )
@@ -13,20 +14,18 @@ import (
 var (
 	basePath string
 )
-
 func init() {
-	config.LoadServices(config.ConfigDir)
-	err := config.LoadKongConf(config.ConfigDir)
+	err := config.LoadConfig.KongConf()
 	if err != nil {
 		panic(err)
 	}
-	basePath = config.KongConf.Host + ":" + config.KongConf.Admin
+	basePath = config.KongConn.Host + ":" + config.KongConn.Admin
 }
-func CreateNewUpstream(service config.KongDesc) error {
-	fmt.Print("\nCreating a new UpStream [", service.UpstreamService, "] .... ")
+func CreateNewUpstream(service definitions.KongUpstream) error {
+	fmt.Print("\nCreating a new UpStream [", service.Name, "] .... ")
 	_body, _ := json.Marshal(Upstream{
-		service.UpstreamService,
-		"ip",
+		service.Name,
+		service.Hashon,
 	})
 	res, err := http.Post(basePath+"/upstreams", "application/json", bytes.NewBuffer(_body))
 	defer res.Body.Close()
@@ -41,18 +40,19 @@ func CreateNewUpstream(service config.KongDesc) error {
 
 	}
 }
-func AddUpstreamTarget(service config.KongDesc, target UpstreamTarget) error {
-	fmt.Print("\nAdding Upstream Target [", target.Target, "] to [", service.UpstreamService, "] .... ")
+func AddUpstreamTarget(service definitions.KongUpstream, target UpstreamTarget) error {
+	fmt.Print("\nUpdating Upstream Target [", target.Target, "] to [", service.Name, "] .... ")
 	_body, err := json.Marshal(target)
 	if err != nil {
 		return err
 	}
-	res, err := http.Post(basePath+"/upstreams/"+service.UpstreamService+"/targets", "application/json", bytes.NewBuffer(_body))
+	res, err := http.Post(basePath+"/upstreams/"+service.Name+"/targets", "application/json", bytes.NewBuffer(_body))
 	defer res.Body.Close()
 	if err != nil {
 		return err
 	}
 	if res.StatusCode <= 400 {
+
 		fmt.Println("OK")
 		return nil
 	} else {
@@ -60,31 +60,20 @@ func AddUpstreamTarget(service config.KongDesc, target UpstreamTarget) error {
 
 	}
 }
-func CreateService(serviceId string, service config.Services, serviceEndpointHost string, serviceEndpointPort int) error {
-	fmt.Print("\nCreating a new Service [", serviceId, "] .... ")
+func CreateService(service definitions.Kongdef) error {
+	fmt.Print("\nCreating a new Service [", service.Service.Name, "] .... ")
 	var _body []byte
 	var err error
-	if service.KongConf.Upstream == true {
-		_body, err = json.Marshal(Service{
-			Name: serviceId,
-			Host: service.KongConf.UpstreamService,
-			Path: service.KongConf.ServicePath,
-			Port: 80,
-		})
-		if err != nil {
-			return err
-		}
-	} else {
-		_body, err = json.Marshal(Service{
-			Name: serviceId,
-			Host: serviceEndpointHost,
-			Path: service.KongConf.ServicePath,
-			Port: serviceEndpointPort,
-		})
-		if err != nil {
-			return err
-		}
+	_body, err = json.Marshal(Service{
+		Name: service.Service.Name,
+		Host: service.Upstream.Name,
+		Path: service.Service.TaregtPath,
+		Port: 80,
+	})
+	if err != nil {
+		return err
 	}
+
 	res, err := http.Post(basePath+"/services/", "application/json", bytes.NewBuffer(_body))
 	defer res.Body.Close()
 	if err != nil {
@@ -98,16 +87,16 @@ func CreateService(serviceId string, service config.Services, serviceEndpointHos
 
 	}
 }
-func CreateNewRoute(serviceId string, service config.Services) error {
-	fmt.Print("\nCreating a new Route [", service.KongConf.Route, "] [", serviceId, "] .... ")
+func CreateNewRoute(service definitions.KongService) error {
+	fmt.Print("\nCreating a new Route [", service.Route, "] [", service.Name, "] .... ")
 	_body, err := json.Marshal(Route{
-		Paths: []string{service.KongConf.Route},
-		Name:  serviceId + "-Route",
+		Paths: []string{service.Route},
+		Name:  service.Name + "-Route",
 	})
 	if err != nil {
 		return err
 	}
-	res, err := http.Post(basePath+"/services/"+serviceId+"/routes/", "application/json", bytes.NewBuffer(_body))
+	res, err := http.Post(basePath+"/services/"+service.Name+"/routes/", "application/json", bytes.NewBuffer(_body))
 	defer res.Body.Close()
 	if err != nil {
 		return err

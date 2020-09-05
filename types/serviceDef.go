@@ -1,0 +1,22 @@
+package definitions
+
+type ServiceDef struct {
+	Id string `json:"id,omitempty"`
+	ContainerId string `json:"container_id"`
+	Host string `json:"host"`
+	Service string `json:"service"`
+	Ip string `json:"ip"`
+	Port string `json:"port"`
+}
+type HealthDef struct {
+	Endpoint string `mapstructure:"endpoint"`
+}
+type ServiceDeclaration struct {
+	Image string `mapstructure:"image"`
+	ImageUri string `mapstructure:"image_uri"`
+	ContainerPort string `mapstructure:"container_port"`
+	BasePort int `mapstructure:"base_port"`
+	MaxPort int `mapstructure:"max_port"`
+	KongConf Kongdef `mapstructure:"kong_conf"`
+	Health HealthDef `mapstructure:"health"`
+}

@@ -2,7 +2,7 @@ package kong
 
 type Upstream struct {
 	Name string `json:"name"`
-	HashOn string `json:"hash_on"` //hash_on should be ip only
+	HashOn string `json:"hash_on"` //hash_on can be cookie , ip ,none
 }
 
 type UpstreamTarget struct {
