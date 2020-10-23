@@ -1,15 +1,10 @@
 {
   "config": {
-    "cache": {
-      "addr": "127.0.0.1:6379",
-      "password": "",
-      "db": 0
-    },
     "registry": {
       "AWS": {
-        "AWS_ACCESS_KEY":"AWS-ACCESS_KEY",
-        "AWS_SECRET_ACCESS_KEY":"AWS-SECRET_KEY",
-        "AWS_REGION":"AWS-REGION"
+        "AWS_ACCESS_KEY": "AWS-ACCESS_KEY",
+        "AWS_SECRET_ACCESS_KEY": "AWS-SECRET_KEY",
+        "AWS_REGION": "AWS-REGION"
       }
     },
     "kong": {
@@ -19,8 +14,12 @@
     "discovery": {
       "redis": "127.0.0.1:6379"
     },
-    "xerxes_host":{
+    "xerxes_host": {
       "host": "127.0.0.1"
+    },
+    "bitConf": {
+      "dbpath": "./data/db",
+      "max_write_size": 1
     }
   }
 }

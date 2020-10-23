@@ -7,62 +7,79 @@ import (
 	"github.com/docker/docker/api/types"
 	dockerClient "github.com/rahultripathidev/docker-utility/client"
 	"github.com/rahultripathidev/docker-utility/datastore"
+	"github.com/rahultripathidev/docker-utility/datastore/bitcask"
 	"github.com/rahultripathidev/docker-utility/kong"
+	definitions "github.com/rahultripathidev/docker-utility/types"
 )
 
-func ScaleDown(serviceId string, podId string, nodeId string) error {
-	if podId != "" && nodeId == "" {
-		podDef := datastore.GetpodById(serviceId, podId)
-		if podDef.Ip != "" {
-			err := shutdownPod(serviceId, podDef.Id)
+func ScaleDown(serviceId string, flakeId string, instaceId string) error {
+	if flakeId != "" && instaceId == "" {
+		flake, err := bitcask.GetFlake(flakeId)
+		if err != nil {
+			return err
+		}
+		if flake.Ip != "" {
+			err := shutdownPod(flake)
 			if err != nil {
 				return nil
 			}
 		} else {
-			return errors.New("Pod not found")
+			return errors.New("flake not found")
 		}
 		return nil
-	} else if nodeId != "" && podId == "" {
-		pods := datastore.GetAllpodsInNode(nodeId)
-		for _, pod := range pods {
-			err := shutdownPod(serviceId, pod)
+	} else if instaceId != "" && flakeId == "" {
+		flakes, err := bitcask.GetAllInstanceFlakes(instaceId)
+		if err != nil {
+			return err
+		}
+		for _, flake := range flakes {
+			err := shutdownPod(flake)
 			if err != nil {
 				return err
 			}
 		}
 		return nil
 	}
-	pods := datastore.GetAllServicesPods(serviceId)
-	err :=  shutdownPod(serviceId, pods[0].Id)
-	return err
+	flakes, err := bitcask.GetAllServiceFlakes(serviceId)
+	if err != nil {
+		return err
+	}
+	if len(flakes) > 0 {
+		err = shutdownPod(flakes[0])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func shutdownPod(serviceId string, podId string) error {
-	podDef := datastore.GetpodById(serviceId, podId)
-	serviceDef := GetServiceDef(serviceId)
+func shutdownPod(flake definitions.FlakeDef) error {
+	serviceDef := GetServiceDef(flake.Service)
 	err := kong.AddUpstreamTarget(serviceDef.KongConf.Upstream, kong.UpstreamTarget{
-		Target: podDef.Ip + ":" + podDef.Port,
+		Target: flake.Ip + ":" + flake.Port,
 		Weight: 0,
 	})
 	if err != nil {
-		fmt.Print("Failed To shutdown service  [", serviceId, "] error ", err)
+		fmt.Print("Failed To shutdown service  [", flake.Id, "] error ", err)
 	}
-	Dockerclient, err := dockerClient.NewDockerClient(podDef.Host)
+	Dockerclient, err := dockerClient.NewDockerClient(flake.HostId)
 	if err != nil {
 		return err
 	}
-	err = Dockerclient.ContainerRemove(context.Background(), podDef.ContainerId, types.ContainerRemoveOptions{
+	err = Dockerclient.ContainerRemove(context.Background(), flake.ContainerId, types.ContainerRemoveOptions{
 		Force: true,
 	})
 	if err != nil {
-		fmt.Print("Failed To shutdown service  [", serviceId, "] error ", err)
+		fmt.Print("Failed To shutdown service  [", flake.Id, "] error ", err)
 		return err
 	}
-	if err = datastore.DeregisterPod(serviceId, podDef.Id, podDef.Host); err != nil {
-		fmt.Print("Failed To shutdown service  [", serviceId, "] error ", err)
+	if err = bitcask.DeleteFLake(flake.Id); err != nil {
+		fmt.Print("Failed To Store  service config  [", flake.Id, "] error ", err)
 		return err
 	}
-	key := datastore.XerxesEvents["reloadAll"]()
-	datastore.NotifyChange(key, "")
+	err = datastore.NotifyChange()
+	if err != nil {
+		fmt.Println(err)
+	}
 	return nil
 }

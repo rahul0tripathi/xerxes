@@ -1,8 +1,6 @@
 package datastore
 
 const (
-	XerxesService = "XERXES:SERVICES:"
-	XerxesNodes   = "XERXES:NODES:"
 	XerxesPubSub  = "XERXES:*"
 )
 
