@@ -1,9 +1,9 @@
 package definitions
 
-type ServiceDef struct {
+type FlakeDef struct {
 	Id string `json:"id,omitempty"`
 	ContainerId string `json:"container_id"`
-	Host string `json:"host"`
+	HostId string `json:"host_id"`
 	Service string `json:"service"`
 	Ip string `json:"ip"`
 	Port string `json:"port"`

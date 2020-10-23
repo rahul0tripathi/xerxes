@@ -1,5 +1,6 @@
 package definitions
 
-type BitcaskConf struct {
-	Dbpath string `json:"dbpath"`
+type BitConf struct {
+	Dbpath string `mapstructure:"dbpath",json:"dbpath"`
+	MaxWriteSize int `mapstructure:"max_write_size"`
 }

@@ -1,15 +1,14 @@
 package datastore
 
 import (
-	"context"
 	"github.com/rahultripathidev/docker-utility/config"
+	"github.com/rahultripathidev/docker-utility/datastore/bitcask"
 )
 
-func GetNodeServicesCount() map[string]int64 {
-	count := make(map[string]int64)
+func GetInstanceFlakeCounts() map[string]int {
+	count := make(map[string]int)
 	for id, _ := range config.Nodes.NodeList {
-		resp := RedisClient.LLen(context.Background(), XerxesNodes+id)
-		count[id] = resp.Val()
+		count[id] = bitcask.GetInstanceFlakeCount(id)
 	}
 	return count
 }

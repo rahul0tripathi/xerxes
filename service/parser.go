@@ -23,9 +23,9 @@ func GetServiceDef(service string) definitions.ServiceDeclaration {
 	}
 }
 
-func GetAvailableConfig(def definitions.ServiceDeclaration,service []definitions.ServiceDef) (string, string) {
+func GetAvailableConfig(def definitions.ServiceDeclaration, service []definitions.FlakeDef) (string, string) {
 	available := false
-	nodeWeights := datastore.GetNodeServicesCount()
+	nodeWeights := datastore.GetInstanceFlakeCounts()
 	availableNode := ""
 	availablePort := ""
 	for id, weight := range nodeWeights {
@@ -41,13 +41,13 @@ func GetAvailableConfig(def definitions.ServiceDeclaration,service []definitions
 			if err != nil {
 				continue
 			}
-			if _port != randomPort && used.Host == availableNode {
+			if _port != randomPort && used.HostId == availableNode {
 				available = true
 				break
 			}
 		}
-		if available  || len(service) == 0{
-			availablePort = fmt.Sprintf("%d",randomPort)
+		if available || len(service) == 0 {
+			availablePort = fmt.Sprintf("%d", randomPort)
 			break
 		}
 	}

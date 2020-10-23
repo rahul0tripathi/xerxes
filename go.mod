@@ -14,6 +14,7 @@ require (
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/prologic/bitcask v0.3.6
 	github.com/rs/xid v1.2.1
 	github.com/spf13/viper v1.7.1
 	github.com/urfave/cli/v2 v2.2.0

@@ -1,20 +1,22 @@
 package service
 
-import "github.com/rahultripathidev/docker-utility/datastore"
+import (
+	"github.com/rahultripathidev/docker-utility/datastore/bitcask"
+)
 
-func Scale(serviceId string , nodeId string , factor int64 ) error {
-	runningServices := datastore.GetTotalServices(serviceId)
-	var i int64
-	if runningServices < factor {
-		for i = 0 ; i < factor-runningServices; i++ {
-			err := ScaleUp(serviceId , nodeId)
+func Scale(serviceId string, nodeId string, factor int) error {
+	runningServices, _ := bitcask.GetAllServiceFlakes(serviceId)
+	var i int
+	if len(runningServices) < factor {
+		for i = 0; i < factor-len(runningServices); i++ {
+			err := ScaleUp(serviceId, nodeId)
 			if err != nil {
 				return err
 			}
 		}
-	}else if runningServices > factor {
-		for i = 0 ; i < runningServices-factor; i++ {
-			err := ScaleDown(serviceId , "",nodeId)
+	} else if len(runningServices) > factor {
+		for i = 0; i < len(runningServices)-factor; i++ {
+			err := ScaleDown(serviceId, "", nodeId)
 			if err != nil {
 				return err
 			}
