@@ -1,7 +1,8 @@
-package registry
+package main
 
 import (
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecr"
@@ -9,7 +10,9 @@ import (
 
 func GetRegistryAuthorizationToken() (string, error) {
 	sess, err := session.NewSession()
-	svc := ecr.New(sess)
+	svc := ecr.New(sess,&aws.Config{
+		Region: aws.String("ap-south-1"),
+	})
 	input := &ecr.GetAuthorizationTokenInput{}
 	result, err := svc.GetAuthorizationToken(input)
 	if err != nil {

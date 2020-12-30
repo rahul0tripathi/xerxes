@@ -9,7 +9,6 @@ import (
 	"github.com/docker/go-connections/nat"
 	"github.com/rahultripathidev/docker-utility/client"
 	"github.com/rahultripathidev/docker-utility/config"
-	"github.com/rahultripathidev/docker-utility/datastore"
 	"github.com/rahultripathidev/docker-utility/datastore/bitcask"
 	"github.com/rahultripathidev/docker-utility/kong"
 	definitions "github.com/rahultripathidev/docker-utility/types"
@@ -24,14 +23,18 @@ func ScaleUp(serviceId string, nodeId string) error {
 	ctx := context.Background()
 	serviceDef := GetServiceDef(serviceId)
 	runningPods, err := bitcask.GetAllServiceFlakes(serviceId)
-	if err != nil && err != bitcask.ErrKeyNotFound{
+	if err != nil && err != bitcask.ErrKeyNotFound {
 		return err
 	}
-	availableNode, availablePort := GetAvailableConfig(serviceDef, runningPods)
-	if nodeId == "" {
+	var availableNode, availablePort string
+	if nodeId != "" {
+		availablePort = fmt.Sprintf("%d", definitions.GenRandPort(serviceDef.BasePort, serviceDef.MaxPort))
+	} else {
+		availableNode, availablePort = GetAvailableConfig(serviceDef, runningPods)
 		nodeId = availableNode
 	}
 	dockerDaemon, err := dockerClient.NewDockerClient(nodeId)
+	defer dockerDaemon.Close()
 	if err != nil {
 		return err
 	}
@@ -41,6 +44,7 @@ func ScaleUp(serviceId string, nodeId string) error {
 	portset := make(map[nat.Port]struct{})
 	port := nat.Port(fmt.Sprintf("%s/tcp", serviceDef.ContainerPort))
 	FlakeId := xid.New()
+	fmt.Println("Service Name:",serviceId,"Host Name:",nodeId,"Service Id:",FlakeId.String())
 	portset[port] = struct{}{}
 	containerConfig := container.Config{
 		Image: serviceDef.Image,
@@ -53,6 +57,18 @@ func ScaleUp(serviceId string, nodeId string) error {
 					HostIP:   "0.0.0.0",
 					HostPort: availablePort,
 				},
+			},
+		},
+		RestartPolicy: container.RestartPolicy{
+			Name:              "on-failure",
+			MaximumRetryCount: 1,
+		},
+		LogConfig: container.LogConfig{
+			Type: "local",
+			Config: map[string]string{
+				"max-size": "1m",
+				"max-file": "1",
+				"compress":"false",
 			},
 		},
 		ExtraHosts: []string{fmt.Sprintf("%s:%s", XERXES_HOST, config.XerxesHost.Host)},
@@ -68,26 +84,31 @@ func ScaleUp(serviceId string, nodeId string) error {
 	}
 	func() {
 		if len(runningPods) == 0 {
-			err := kong.CreateService(serviceDef.KongConf)
+			err = kong.CreateNewUpstream(serviceDef.KongConf.Upstream, serviceId)
 			if err != nil {
 				fmt.Print("Failed To Create service  [", serviceId, "] error ", err)
 				return
 			}
-			err = kong.CreateNewRoute(serviceDef.KongConf.Service)
+			err = kong.AddUpstreamTarget(serviceDef.KongConf.Upstream, kong.UpstreamTarget{
+				Target: config.Nodes.NodeList[nodeId].Ip + ":" + availablePort,
+				Weight: 100,
+			}, serviceId)
+			err := kong.CreateService(serviceDef.KongConf, serviceId)
 			if err != nil {
 				fmt.Print("Failed To Create service  [", serviceId, "] error ", err)
 				return
 			}
-			err = kong.CreateNewUpstream(serviceDef.KongConf.Upstream)
+			err = kong.CreateNewRoute(serviceDef.KongConf.Service, serviceId)
 			if err != nil {
 				fmt.Print("Failed To Create service  [", serviceId, "] error ", err)
 				return
 			}
+		} else {
+			err = kong.AddUpstreamTarget(serviceDef.KongConf.Upstream, kong.UpstreamTarget{
+				Target: config.Nodes.NodeList[nodeId].Ip + ":" + availablePort,
+				Weight: 100,
+			}, serviceId)
 		}
-		err = kong.AddUpstreamTarget(serviceDef.KongConf.Upstream, kong.UpstreamTarget{
-			Target: config.Nodes.NodeList[nodeId].Ip + ":" + availablePort,
-			Weight: 100,
-		})
 	}()
 	err = bitcask.NewFlake(definitions.FlakeDef{
 		Id:          FlakeId.String(),
@@ -100,7 +121,6 @@ func ScaleUp(serviceId string, nodeId string) error {
 	if err != nil {
 		return err
 	}
-	err = datastore.NotifyChange()
 	if err != nil {
 		fmt.Println(err)
 	}

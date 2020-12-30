@@ -5,6 +5,7 @@ type Services struct {
 	Image string `mapstructure:"image"`
 	Containerport uint32 `mapstructure:"containerPort"`
 	Hostport uint32 `mapstructure:"hostPort"`
+	Dev Dev `mapstructure:"dev"`
 	HostPortRange []uint32 `mapstructure:"hostportRange"`
 	ImageUri string `mapstring:"imageUri"`
 	Init uint64 `mapstring:"init"`
@@ -37,4 +38,15 @@ type Daemon struct {
 	Version string `mapstructure:"version"`
 	Ip string `mapstructure:"ip"`
 	Id int `mapstrucutr:"Id"`
+}
+type Dev struct {
+	Manager string `mapstructure:"manager"`
+	Cmd DevCmd `mapstructure:"cmd"`
+	Port string `mapstructure:"port"`
+}
+
+type DevCmd struct {
+	Start string `mapstructure:"start"`
+	Stop string `mapstructure:"stop"`
+	Reload string `mapstructure:"reload"`
 }

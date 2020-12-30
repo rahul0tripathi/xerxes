@@ -4,7 +4,7 @@ import (
 	"github.com/rahultripathidev/docker-utility/datastore/bitcask"
 )
 
-func Scale(serviceId string, nodeId string, factor int) error {
+func Scale(serviceId string, nodeId string, factor int,timeout int64) error {
 	runningServices, _ := bitcask.GetAllServiceFlakes(serviceId)
 	var i int
 	if len(runningServices) < factor {
@@ -16,7 +16,7 @@ func Scale(serviceId string, nodeId string, factor int) error {
 		}
 	} else if len(runningServices) > factor {
 		for i = 0; i < len(runningServices)-factor; i++ {
-			err := ScaleDown(serviceId, "", nodeId)
+			err := ScaleDown(serviceId, "", nodeId,timeout)
 			if err != nil {
 				return err
 			}

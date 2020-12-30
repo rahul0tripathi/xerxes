@@ -20,3 +20,7 @@ type KongConn struct {
 	Host string `mapstructure:"host"`
 	Admin string `mapstructure:"admin"`
 }
+type InternalGateway struct {
+	Host string `mapstructure:"host"`
+	Admin string `mapstructure:"admin_port"`
+}

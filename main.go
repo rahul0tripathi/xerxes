@@ -16,6 +16,10 @@ func main() {
 		panic(err)
 	}
 	bitcask.InitClient()
+	err = config.LoadConfig.RegistryAuth()
+	if err != nil {
+		panic(err)
+	}
 	defer func() {
 		err = bitcask.BitClient.Flock.Unlock()
 		bitcask.GracefulClose()

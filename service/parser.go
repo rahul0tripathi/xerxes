@@ -3,9 +3,8 @@ package service
 import (
 	"fmt"
 	"github.com/rahultripathidev/docker-utility/config"
-	"github.com/rahultripathidev/docker-utility/datastore"
 	definitions "github.com/rahultripathidev/docker-utility/types"
-	"strconv"
+	"math/rand"
 )
 
 func init() {
@@ -24,32 +23,13 @@ func GetServiceDef(service string) definitions.ServiceDeclaration {
 }
 
 func GetAvailableConfig(def definitions.ServiceDeclaration, service []definitions.FlakeDef) (string, string) {
-	available := false
-	nodeWeights := datastore.GetInstanceFlakeCounts()
 	availableNode := ""
 	availablePort := ""
-	for id, weight := range nodeWeights {
-		if _, ok := config.Nodes.NodeList[availableNode]; ok && nodeWeights[availableNode] < weight {
-		} else {
-			availableNode = id
-		}
+	flatMap := make([]string,0,len(config.Nodes.NodeList))
+	for k := range config.Nodes.NodeList {
+		flatMap = append(flatMap,k)
 	}
-	for {
-		randomPort := definitions.GenRandPort(def.BasePort, def.MaxPort)
-		for _, used := range service {
-			_port, err := strconv.Atoi(used.Port)
-			if err != nil {
-				continue
-			}
-			if _port != randomPort && used.HostId == availableNode {
-				available = true
-				break
-			}
-		}
-		if available || len(service) == 0 {
-			availablePort = fmt.Sprintf("%d", randomPort)
-			break
-		}
-	}
+	availableNode = flatMap[rand.Intn(len(flatMap))]
+	availablePort = fmt.Sprintf("%d",definitions.GenRandPort(def.BasePort, def.MaxPort))
 	return availableNode, availablePort
 }

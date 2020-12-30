@@ -1,0 +1,25 @@
+{
+  "services": {
+    "sampleservice": {
+      "image": "sample:latest",
+      "container_port": 5000,
+      "base_port": 3000,
+      "max_port": 4500,
+      "image_uri": "sample:latest",
+      "kong_conf": {
+        "service": {
+          "name": "sample-service",
+          "route": "/sample",
+          "target_path": "/sample"
+        },
+        "upstream": {
+          "name": "sample.v1.sample",
+          "hashon": "none"
+        }
+      },
+      "health": {
+        "endpoint": "/health"
+      }
+    }
+  }
+}

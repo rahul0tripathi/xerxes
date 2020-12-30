@@ -1,25 +1,22 @@
 package service
 
 import (
-	"context"
 	"errors"
 	"fmt"
-	"github.com/docker/docker/api/types"
-	dockerClient "github.com/rahultripathidev/docker-utility/client"
-	"github.com/rahultripathidev/docker-utility/datastore"
 	"github.com/rahultripathidev/docker-utility/datastore/bitcask"
 	"github.com/rahultripathidev/docker-utility/kong"
+	"github.com/rahultripathidev/docker-utility/scheduler_client"
 	definitions "github.com/rahultripathidev/docker-utility/types"
 )
 
-func ScaleDown(serviceId string, flakeId string, instaceId string) error {
-	if flakeId != "" && instaceId == "" {
+func ScaleDown(serviceId string, flakeId string, instaceId string, timeout int64) error {
+	if flakeId != "" {
 		flake, err := bitcask.GetFlake(flakeId)
 		if err != nil {
 			return err
 		}
 		if flake.Ip != "" {
-			err := shutdownPod(flake)
+			err := shutdownPod(flake, timeout)
 			if err != nil {
 				return nil
 			}
@@ -27,15 +24,18 @@ func ScaleDown(serviceId string, flakeId string, instaceId string) error {
 			return errors.New("flake not found")
 		}
 		return nil
-	} else if instaceId != "" && flakeId == "" {
+	} else if instaceId != "" {
 		flakes, err := bitcask.GetAllInstanceFlakes(instaceId)
 		if err != nil {
 			return err
 		}
 		for _, flake := range flakes {
-			err := shutdownPod(flake)
-			if err != nil {
-				return err
+			if flake.HostId == instaceId {
+				err := shutdownPod(flake, timeout)
+				if err != nil {
+					return err
+				}
+				return nil
 			}
 		}
 		return nil
@@ -45,7 +45,7 @@ func ScaleDown(serviceId string, flakeId string, instaceId string) error {
 		return err
 	}
 	if len(flakes) > 0 {
-		err = shutdownPod(flakes[0])
+		err = shutdownPod(flakes[0], timeout)
 		if err != nil {
 			return err
 		}
@@ -53,33 +53,22 @@ func ScaleDown(serviceId string, flakeId string, instaceId string) error {
 	return nil
 }
 
-func shutdownPod(flake definitions.FlakeDef) error {
+func shutdownPod(flake definitions.FlakeDef, timeout int64) error {
 	serviceDef := GetServiceDef(flake.Service)
 	err := kong.AddUpstreamTarget(serviceDef.KongConf.Upstream, kong.UpstreamTarget{
 		Target: flake.Ip + ":" + flake.Port,
 		Weight: 0,
-	})
+	}, flake.Service)
 	if err != nil {
 		fmt.Print("Failed To shutdown service  [", flake.Id, "] error ", err)
-	}
-	Dockerclient, err := dockerClient.NewDockerClient(flake.HostId)
-	if err != nil {
-		return err
-	}
-	err = Dockerclient.ContainerRemove(context.Background(), flake.ContainerId, types.ContainerRemoveOptions{
-		Force: true,
-	})
-	if err != nil {
-		fmt.Print("Failed To shutdown service  [", flake.Id, "] error ", err)
-		return err
 	}
 	if err = bitcask.DeleteFLake(flake.Id); err != nil {
 		fmt.Print("Failed To Store  service config  [", flake.Id, "] error ", err)
 		return err
 	}
-	err = datastore.NotifyChange()
 	if err != nil {
 		fmt.Println(err)
 	}
+	scheduler_client.ScheduleContainerForDeletion(flake.ContainerId, flake.HostId, true, timeout)
 	return nil
 }

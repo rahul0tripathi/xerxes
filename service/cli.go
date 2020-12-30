@@ -28,12 +28,16 @@ var ServiceCommands = []*cli.Command{
 						Name:  "node",
 						Usage: "force orchestrator to use Node",
 					},
+					&cli.Int64Flag{
+						Name: "timeout",
+						Usage: "time after which the container is deleted (In seconds , default 30)",
+					},
 				},
 				Name:    "scale",
 				Aliases: []string{"scale"},
 				Usage:   "scale a service to a desired number",
 				Action: func(c *cli.Context) error {
-					return Scale(c.Args().Get(0), c.String("node"), c.Int("number"))
+					return Scale(c.Args().Get(0), c.String("node"), c.Int("number"),c.Int64("timeout"))
 				},
 			},
 			{
@@ -117,6 +121,12 @@ var ServiceCommands = []*cli.Command{
 			{
 				Name:    "remove",
 				Aliases: []string{"rm"},
+				Flags: []cli.Flag{
+					&cli.Int64Flag{
+						Name:  "timeout",
+						Usage: "time after which the container is deleted (In seconds , default 30)",
+					},
+				},
 				Usage:   "remove a container",
 				Action: func(c *cli.Context) error {
 					if c.Args().Get(0) != "" {
@@ -124,21 +134,46 @@ var ServiceCommands = []*cli.Command{
 						if err != nil {
 							return err
 						}
-						return shutdownPod(flakeDef)
+						return shutdownPod(flakeDef,c.Int64("timeout"))
 					} else {
 						return errors.New("invalid podId / service")
 					}
 				},
 			},
 			{
-				Name:  "logs",
+				Name: "logs",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:  "tail",
+						Usage: "latest amount of lines to tail (default 10)",
+					},
+				},
 				Usage: "Get Container logs",
 				Action: func(c *cli.Context) error {
 					flakeDef, err := bitcask.GetFlake(c.Args().Get(0))
 					if err != nil {
 						return err
 					}
-					err = GetFlakeLogs(flakeDef)
+					tail := "10"
+					if c.String("tail") != "" {
+						tail = c.String("tail")
+					}
+					err = GetFlakeLogs(flakeDef, tail)
+					if err != nil {
+						return err
+					}
+					return nil
+				},
+			},
+			{
+				Name:  "stats",
+				Usage: "Get Container Stats",
+				Action: func(c *cli.Context) error {
+					flakeDef, err := bitcask.GetFlake(c.Args().Get(0))
+					if err != nil {
+						return err
+					}
+					err = GetFlakeStats(flakeDef)
 					if err != nil {
 						return err
 					}

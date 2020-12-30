@@ -1,0 +1,17 @@
+syntax = "proto3";
+message containerMeta {
+   string _cid = 1;
+   string _nodeId = 2 ;
+   bool force = 3 ;
+   int64 timeout = 4 ;
+}
+
+message deleteContainerRequest {
+   containerMeta meta = 1 ;
+}
+message deleteContainerResponse {
+   bool success = 1 ;
+}
+service containerManager {
+   rpc deleteContainer(deleteContainerRequest) returns (deleteContainerResponse) ;
+}

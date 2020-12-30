@@ -12,55 +12,88 @@ import (
 )
 
 var (
-	basePath string
+	ExternalGatewayBasePath string
+	InternalGatewayBasePath string
 )
+
 func init() {
 	err := config.LoadConfig.KongConf()
 	if err != nil {
 		panic(err)
 	}
-	basePath = config.KongConn.Host + ":" + config.KongConn.Admin
+	err = config.LoadConfig.InternalGateway()
+	if err != nil {
+		panic(err)
+	}
+	ExternalGatewayBasePath = config.KongConn.Host + ":" + config.KongConn.Admin
+	InternalGatewayBasePath = config.InternalGateway.Host + ":" + config.InternalGateway.Admin
 }
-func CreateNewUpstream(service definitions.KongUpstream) error {
+func CreateNewUpstream(service definitions.KongUpstream, id string) error {
 	fmt.Print("\nCreating a new UpStream [", service.Name, "] .... ")
 	_body, _ := json.Marshal(Upstream{
 		service.Name,
 		service.Hashon,
 	})
-	res, err := http.Post(basePath+"/upstreams", "application/json", bytes.NewBuffer(_body))
+	res, err := http.Post(ExternalGatewayBasePath+"/upstreams", "application/json", bytes.NewBuffer(_body))
 	defer res.Body.Close()
 	if err != nil {
 		return err
 	}
+	res.Body.Close()
 	if res.StatusCode <= 400 || res.StatusCode == 409 {
 		fmt.Println("OK")
-		return nil
+		fmt.Print("Creating a new UpStream in internal Gateway... ")
+		_body, _ = json.Marshal(Upstream{
+			fmt.Sprintf("%s_upstream", id),
+			service.Hashon,
+		})
+		res, err = http.Post(InternalGatewayBasePath+"/upstreams", "application/json", bytes.NewBuffer(_body))
+		if err != nil {
+			return err
+		}
+		res.Body.Close()
+		if res.StatusCode <= 400 || res.StatusCode == 409 {
+			fmt.Println("OK")
+			return nil
+		} else {
+			return errors.New("Request Failed with a status of " + fmt.Sprintf("%d", res.StatusCode))
+		}
+
 	} else {
 		return errors.New("Request Failed with a status of " + fmt.Sprintf("%d", res.StatusCode))
 
 	}
 }
-func AddUpstreamTarget(service definitions.KongUpstream, target UpstreamTarget) error {
+func AddUpstreamTarget(service definitions.KongUpstream, target UpstreamTarget, id string) error {
 	fmt.Print("\nUpdating Upstream Target [", target.Target, "] to [", service.Name, "] .... ")
 	_body, err := json.Marshal(target)
 	if err != nil {
 		return err
 	}
-	res, err := http.Post(basePath+"/upstreams/"+service.Name+"/targets", "application/json", bytes.NewBuffer(_body))
-	defer res.Body.Close()
+	res, err := http.Post(ExternalGatewayBasePath+"/upstreams/"+service.Name+"/targets", "application/json", bytes.NewBuffer(_body))
 	if err != nil {
 		return err
 	}
+	res.Body.Close()
 	if res.StatusCode <= 400 {
-
 		fmt.Println("OK")
-		return nil
+		fmt.Print("\nUpdating Upstream Target In Internal Gateway [", target.Target, "] to [", fmt.Sprintf("%s_upstream", id), "] .... ")
+		res, err = http.Post(InternalGatewayBasePath+"/upstreams/"+fmt.Sprintf("%s_upstream", id)+"/targets", "application/json", bytes.NewBuffer(_body))
+		if err != nil {
+			return err
+		}
+		res.Body.Close()
+		if res.StatusCode <= 400 {
+			fmt.Println("OK")
+			return nil
+		} else {
+			return errors.New("Request Failed with a status of " + fmt.Sprintf("%d", res.StatusCode))
+		}
 	} else {
 		return errors.New("Request Failed with a status of " + fmt.Sprintf("%d", res.StatusCode))
-
 	}
 }
-func CreateService(service definitions.Kongdef) error {
+func CreateService(service definitions.Kongdef, id string) error {
 	fmt.Print("\nCreating a new Service [", service.Service.Name, "] .... ")
 	var _body []byte
 	var err error
@@ -74,20 +107,39 @@ func CreateService(service definitions.Kongdef) error {
 		return err
 	}
 
-	res, err := http.Post(basePath+"/services/", "application/json", bytes.NewBuffer(_body))
-	defer res.Body.Close()
+	res, err := http.Post(ExternalGatewayBasePath+"/services/", "application/json", bytes.NewBuffer(_body))
 	if err != nil {
 		return err
 	}
+	res.Body.Close()
 	if res.StatusCode <= 400 || res.StatusCode == 409 {
 		fmt.Println("OK")
-		return nil
+		fmt.Print("\nCreating a new Service In Internal gateway [", id, "] .... ")
+		_body, err = json.Marshal(Service{
+			Name: id,
+			Host: fmt.Sprintf("%s_upstream", id),
+			Path: "/",
+			Port: 80,
+		})
+		if err != nil {
+			return err
+		}
+		res, err = http.Post(InternalGatewayBasePath+"/services/", "application/json", bytes.NewBuffer(_body))
+		if err != nil {
+			return err
+		}
+		if res.StatusCode <= 400 || res.StatusCode == 409 {
+			fmt.Println("OK")
+			return nil
+		} else {
+			return errors.New("Request Failed with a status of " + fmt.Sprintf("%d", res.StatusCode))
+		}
 	} else {
 		return errors.New("Request Failed with a status of " + fmt.Sprintf("%d", res.StatusCode))
 
 	}
 }
-func CreateNewRoute(service definitions.KongService) error {
+func CreateNewRoute(service definitions.KongService, id string) error {
 	fmt.Print("\nCreating a new Route [", service.Route, "] [", service.Name, "] .... ")
 	_body, err := json.Marshal(Route{
 		Paths: []string{service.Route},
@@ -96,21 +148,36 @@ func CreateNewRoute(service definitions.KongService) error {
 	if err != nil {
 		return err
 	}
-	res, err := http.Post(basePath+"/services/"+service.Name+"/routes/", "application/json", bytes.NewBuffer(_body))
-	defer res.Body.Close()
+	res, err := http.Post(ExternalGatewayBasePath+"/services/"+service.Name+"/routes/", "application/json", bytes.NewBuffer(_body))
 	if err != nil {
 		return err
 	}
+	res.Body.Close()
 	if res.StatusCode <= 400 || res.StatusCode == 409 {
 		fmt.Println("OK")
-		return nil
+		fmt.Print("\nCreating a new Route In Internal Gateway [", id, "] [", id, "] .... ")
+		_body, err = json.Marshal(Route{
+			Paths: []string{fmt.Sprintf("/%s", id)},
+			Name:  id + "-Route",
+		})
+		res, err = http.Post(InternalGatewayBasePath+"/services/"+id+"/routes/", "application/json", bytes.NewBuffer(_body))
+		if err != nil {
+			return err
+		}
+		res.Body.Close()
+		if res.StatusCode <= 400 || res.StatusCode == 409 {
+			fmt.Println("OK")
+			return nil
+		} else {
+			return errors.New("Request Failed with a status of " + fmt.Sprintf("%d", res.StatusCode))
+		}
 	} else {
 		return errors.New("Request Failed with a status of " + fmt.Sprintf("%d", res.StatusCode))
 
 	}
 }
 func GetUpstreams() (UpstreamResp, error) {
-	res, err := http.Get(basePath + "/upstreams/")
+	res, err := http.Get(ExternalGatewayBasePath + "/upstreams/")
 	body, _ := ioutil.ReadAll(res.Body)
 	upstreams := UpstreamResp{}
 	json.Unmarshal(body, &upstreams)
@@ -126,7 +193,7 @@ func GetUpstreams() (UpstreamResp, error) {
 	}
 }
 func GetServices() (ServiceResp, error) {
-	res, err := http.Get(basePath + "/services/")
+	res, err := http.Get(ExternalGatewayBasePath + "/services/")
 	body, _ := ioutil.ReadAll(res.Body)
 	services := ServiceResp{}
 	json.Unmarshal(body, &services)
@@ -142,7 +209,7 @@ func GetServices() (ServiceResp, error) {
 	}
 }
 func GetRoutes(serviceId string) (RouteResp, error) {
-	res, err := http.Get(basePath + "/services/" + serviceId + "/routes")
+	res, err := http.Get(ExternalGatewayBasePath + "/services/" + serviceId + "/routes")
 	body, _ := ioutil.ReadAll(res.Body)
 	routes := RouteResp{}
 	json.Unmarshal(body, &routes)
@@ -158,7 +225,7 @@ func GetRoutes(serviceId string) (RouteResp, error) {
 	}
 }
 func GetTargets(upstreamId string) (TargetResp, error) {
-	res, err := http.Get(basePath + "/upstreams/" + upstreamId + "/targets")
+	res, err := http.Get(ExternalGatewayBasePath + "/upstreams/" + upstreamId + "/targets")
 	body, _ := ioutil.ReadAll(res.Body)
 	targets := TargetResp{}
 	json.Unmarshal(body, &targets)

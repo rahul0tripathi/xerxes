@@ -1,9 +1,0 @@
-{
-  "nodes": {
-    "id01": {
-      "host": "unix:///var/run/docker.sock",
-      "ip": "0.0.0.0",
-      "version": "1.40"
-    }
-  }
-}

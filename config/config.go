@@ -5,6 +5,7 @@ import (
 	definitions "github.com/rahultripathidev/docker-utility/types"
 	"github.com/spf13/viper"
 	"os"
+	"strings"
 )
 
 // Variables Of all the decelerations that are loaded
@@ -16,6 +17,7 @@ var (
 		Def map[string]definitions.ServiceDeclaration `mapstructure:"services"`
 	}
 	KongConn         definitions.KongConn
+	InternalGateway  definitions.InternalGateway
 	Nodes            definitions.Nodes
 	ConfigDir        string
 	BitConf          definitions.BitConf
@@ -44,7 +46,7 @@ func ReadAndUnmarshal(configname string, format string, object interface{}, sub 
 }
 func setEnv(object map[string]string) {
 	for key, value := range object {
-		err := os.Setenv(key, value)
+		err := os.Setenv(strings.ToUpper(key), value)
 		if err != nil {
 			fmt.Println("Unable to set env ", key)
 		}
@@ -53,10 +55,11 @@ func setEnv(object map[string]string) {
 
 // init initializes the config directory , the default is $HOME/.orchestrator/configuration
 func init() {
-	ConfigDir = "./configuration"
+	//ConfigDir = "./configuration"
 	//ConfigDir = func() string { HOME , _ := os.UserHomeDir()
 	//	return HOME }() + "/.orchestrator/configuration"
-	ReadAndUnmarshal("config", "json", &XerxesHost, "config.xerxes_host")
+	ConfigDir = "/home/ubuntu/.orchestrator/configuration"
+	ReadAndUnmarshal("configv3", "json", &XerxesHost, "config.xerxes_host")
 }
 
 // Load config contains the functions to Load Configs into their respective variables
@@ -64,35 +67,38 @@ var (
 	LoadConfig = struct {
 		Bit              func() error
 		Nodes            func() error
+		InternalGateway  func() error
 		ServiceDef       func() error
 		RegistryAuth     func() error
 		KongConf         func() error
 		ServiceDiscovery func() error
 	}{
 		Nodes: func() error {
-			return ReadAndUnmarshal("host", "json", &Nodes, nil)
+			return ReadAndUnmarshal("hostv3", "json", &Nodes, nil)
 		},
 		ServiceDef: func() error {
-			return ReadAndUnmarshal("service", "json", &ServicesDec, nil)
+			return ReadAndUnmarshal("servicev3", "json", &ServicesDec, nil)
 		},
 		RegistryAuth: func() error {
 			credentials := make(map[string]string)
-			err := ReadAndUnmarshal("config", "json", &credentials, "config.registry.AWS")
+			err := ReadAndUnmarshal("configv3", "json", &credentials, "config.registry.AWS")
 			if err != nil {
 				return err
 			}
-			fmt.Println(credentials)
 			setEnv(credentials)
 			return nil
 		},
 		KongConf: func() error {
-			return ReadAndUnmarshal("config", "json", &KongConn, "config.kong")
+			return ReadAndUnmarshal("configv3", "json", &KongConn, "config.kong")
+		},
+		InternalGateway: func() error {
+			return ReadAndUnmarshal("configv3", "json", &InternalGateway, "config.internalGateway")
 		},
 		ServiceDiscovery: func() error {
-			return ReadAndUnmarshal("config", "json", &ServiceDiscovery, "config.discovery")
+			return ReadAndUnmarshal("configv3", "json", &ServiceDiscovery, "config.discovery")
 		},
 		Bit: func() error {
-			return ReadAndUnmarshal("config", "json", &BitConf, "config.bitConf")
+			return ReadAndUnmarshal("configv3", "json", &BitConf, "config.bitConf")
 		},
 	}
 )
