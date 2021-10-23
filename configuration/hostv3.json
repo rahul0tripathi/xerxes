@@ -1,8 +1,8 @@
 {
   "nodes": {
-    "id01": {
+    "my-vm-01": {
       "host": "unix:///var/run/docker.sock",
-      "ip": "127.0.0.1",
+      "ip": "192.168.1.101",
       "version": "1.40"
     }
   }

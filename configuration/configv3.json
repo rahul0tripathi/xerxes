@@ -23,7 +23,7 @@
       "host": "127.0.0.1"
     },
     "bitConf": {
-      "dbpath": "./data/db",
+      "dbpath": "/Users/Desktop/data/db",
       "max_write_size": 1
     }
   }

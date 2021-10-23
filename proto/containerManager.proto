@@ -5,13 +5,74 @@ message containerMeta {
    bool force = 3 ;
    int64 timeout = 4 ;
 }
-
+message kongServiceMeta {
+  string serviceName = 1;
+  string route = 2;
+  string targetPath =3;
+}
+message kongUpstreamMeta {
+  string upstreamName =1;
+  string hashon =2;
+}
+message kongMeta {
+  kongServiceMeta kongServiceMeta  =1;
+  kongUpstreamMeta kongUpstreamMeta=2;
+}
+message serviceMeta{
+  string name = 7;
+  string image = 1;
+  string imageUri =2;
+  string ContainerPort =3 ;
+  string BasePort =4;
+  string MaxPort =5;
+  kongMeta kongMeta = 6;
+}
+ message serviceMetaResponse {
+   repeated serviceMeta serviceMeta = 1;
+}
+message serviceMetaRequest {}
 message deleteContainerRequest {
    containerMeta meta = 1 ;
 }
 message deleteContainerResponse {
    bool success = 1 ;
 }
+message flakeMeta {
+  string id =1;
+  string containerId =2;
+  string hostId =3;
+  string service =4;
+  string ip=5;
+  string port=6;
+}
+message flakeMetaResponse {
+  repeated flakeMeta flakeMeta= 1;
+}
+message flakeStats {
+  string id = 4;
+  string memUsage =1;
+  string cpuPer =2;
+  string Network =3;
+}
+message flakeStatsResponse {
+  repeated flakeStats flakeStats =1;
+}
+message flakeStatsRequest {
+  repeated string id = 1;
+}
+message flakeLogsResponse {
+  bytes logs=1;
+}
+message flakeLogsRequest {
+  string tail=1;
+  string id=2;
+}
+message flakeMetaRequest {}
 service containerManager {
    rpc deleteContainer(deleteContainerRequest) returns (deleteContainerResponse) ;
+   rpc getServices(serviceMetaRequest) returns (serviceMetaResponse) ;
+   rpc getActiveServices(flakeMetaRequest) returns (flakeMetaResponse) ;
+   rpc getFlakeStats(flakeStatsRequest) returns (flakeStatsResponse) ;
+   rpc getFlakeLogs(flakeLogsRequest) returns (flakeLogsResponse) ;
+
 }

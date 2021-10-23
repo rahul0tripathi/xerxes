@@ -7,6 +7,7 @@ import (
 
 var (
 	ErrKeyNotFound = bitcask.ErrKeyNotFound
+	ErrDatabaseLocked = bitcask.ErrDatabaseLocked
 	keys = map[string]func(parmas ...string) (key []byte){
 		"flake": func(params ...string) (key []byte) {
 			return []byte(fmt.Sprintf("FLAKE:%s", params[0]))

@@ -11,6 +11,7 @@ import (
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
+// Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
 // ContainerManagerClient is the client API for ContainerManager service.
@@ -18,6 +19,10 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ContainerManagerClient interface {
 	DeleteContainer(ctx context.Context, in *DeleteContainerRequest, opts ...grpc.CallOption) (*DeleteContainerResponse, error)
+	GetServices(ctx context.Context, in *ServiceMetaRequest, opts ...grpc.CallOption) (*ServiceMetaResponse, error)
+	GetActiveServices(ctx context.Context, in *FlakeMetaRequest, opts ...grpc.CallOption) (*FlakeMetaResponse, error)
+	GetFlakeStats(ctx context.Context, in *FlakeStatsRequest, opts ...grpc.CallOption) (*FlakeStatsResponse, error)
+	GetFlakeLogs(ctx context.Context, in *FlakeLogsRequest, opts ...grpc.CallOption) (*FlakeLogsResponse, error)
 }
 
 type containerManagerClient struct {
@@ -37,11 +42,51 @@ func (c *containerManagerClient) DeleteContainer(ctx context.Context, in *Delete
 	return out, nil
 }
 
+func (c *containerManagerClient) GetServices(ctx context.Context, in *ServiceMetaRequest, opts ...grpc.CallOption) (*ServiceMetaResponse, error) {
+	out := new(ServiceMetaResponse)
+	err := c.cc.Invoke(ctx, "/containerManager/getServices", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *containerManagerClient) GetActiveServices(ctx context.Context, in *FlakeMetaRequest, opts ...grpc.CallOption) (*FlakeMetaResponse, error) {
+	out := new(FlakeMetaResponse)
+	err := c.cc.Invoke(ctx, "/containerManager/getActiveServices", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *containerManagerClient) GetFlakeStats(ctx context.Context, in *FlakeStatsRequest, opts ...grpc.CallOption) (*FlakeStatsResponse, error) {
+	out := new(FlakeStatsResponse)
+	err := c.cc.Invoke(ctx, "/containerManager/getFlakeStats", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *containerManagerClient) GetFlakeLogs(ctx context.Context, in *FlakeLogsRequest, opts ...grpc.CallOption) (*FlakeLogsResponse, error) {
+	out := new(FlakeLogsResponse)
+	err := c.cc.Invoke(ctx, "/containerManager/getFlakeLogs", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ContainerManagerServer is the server API for ContainerManager service.
 // All implementations must embed UnimplementedContainerManagerServer
 // for forward compatibility
 type ContainerManagerServer interface {
 	DeleteContainer(context.Context, *DeleteContainerRequest) (*DeleteContainerResponse, error)
+	GetServices(context.Context, *ServiceMetaRequest) (*ServiceMetaResponse, error)
+	GetActiveServices(context.Context, *FlakeMetaRequest) (*FlakeMetaResponse, error)
+	GetFlakeStats(context.Context, *FlakeStatsRequest) (*FlakeStatsResponse, error)
+	GetFlakeLogs(context.Context, *FlakeLogsRequest) (*FlakeLogsResponse, error)
 	mustEmbedUnimplementedContainerManagerServer()
 }
 
@@ -51,6 +96,18 @@ type UnimplementedContainerManagerServer struct {
 
 func (UnimplementedContainerManagerServer) DeleteContainer(context.Context, *DeleteContainerRequest) (*DeleteContainerResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteContainer not implemented")
+}
+func (UnimplementedContainerManagerServer) GetServices(context.Context, *ServiceMetaRequest) (*ServiceMetaResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetServices not implemented")
+}
+func (UnimplementedContainerManagerServer) GetActiveServices(context.Context, *FlakeMetaRequest) (*FlakeMetaResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetActiveServices not implemented")
+}
+func (UnimplementedContainerManagerServer) GetFlakeStats(context.Context, *FlakeStatsRequest) (*FlakeStatsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetFlakeStats not implemented")
+}
+func (UnimplementedContainerManagerServer) GetFlakeLogs(context.Context, *FlakeLogsRequest) (*FlakeLogsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetFlakeLogs not implemented")
 }
 func (UnimplementedContainerManagerServer) mustEmbedUnimplementedContainerManagerServer() {}
 
@@ -62,7 +119,7 @@ type UnsafeContainerManagerServer interface {
 }
 
 func RegisterContainerManagerServer(s grpc.ServiceRegistrar, srv ContainerManagerServer) {
-	s.RegisterService(&_ContainerManager_serviceDesc, srv)
+	s.RegisterService(&ContainerManager_ServiceDesc, srv)
 }
 
 func _ContainerManager_DeleteContainer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -83,13 +140,104 @@ func _ContainerManager_DeleteContainer_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
-var _ContainerManager_serviceDesc = grpc.ServiceDesc{
+func _ContainerManager_GetServices_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceMetaRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ContainerManagerServer).GetServices(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/containerManager/getServices",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ContainerManagerServer).GetServices(ctx, req.(*ServiceMetaRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ContainerManager_GetActiveServices_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FlakeMetaRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ContainerManagerServer).GetActiveServices(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/containerManager/getActiveServices",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ContainerManagerServer).GetActiveServices(ctx, req.(*FlakeMetaRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ContainerManager_GetFlakeStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FlakeStatsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ContainerManagerServer).GetFlakeStats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/containerManager/getFlakeStats",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ContainerManagerServer).GetFlakeStats(ctx, req.(*FlakeStatsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ContainerManager_GetFlakeLogs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FlakeLogsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ContainerManagerServer).GetFlakeLogs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/containerManager/getFlakeLogs",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ContainerManagerServer).GetFlakeLogs(ctx, req.(*FlakeLogsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// ContainerManager_ServiceDesc is the grpc.ServiceDesc for ContainerManager service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var ContainerManager_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "containerManager",
 	HandlerType: (*ContainerManagerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "deleteContainer",
 			Handler:    _ContainerManager_DeleteContainer_Handler,
+		},
+		{
+			MethodName: "getServices",
+			Handler:    _ContainerManager_GetServices_Handler,
+		},
+		{
+			MethodName: "getActiveServices",
+			Handler:    _ContainerManager_GetActiveServices_Handler,
+		},
+		{
+			MethodName: "getFlakeStats",
+			Handler:    _ContainerManager_GetFlakeStats_Handler,
+		},
+		{
+			MethodName: "getFlakeLogs",
+			Handler:    _ContainerManager_GetFlakeLogs_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

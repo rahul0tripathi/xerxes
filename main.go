@@ -32,7 +32,6 @@ func main() {
 		Usage:    "🛳️ A \"simple\" container orchestration service ",
 		Commands: commands,
 	}
-
 	err = app.Run(os.Args)
 	if err != nil {
 		color.Error.Println(err)

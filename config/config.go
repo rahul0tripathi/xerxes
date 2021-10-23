@@ -2,10 +2,11 @@ package config
 
 import (
 	"fmt"
-	definitions "github.com/rahultripathidev/docker-utility/types"
-	"github.com/spf13/viper"
 	"os"
 	"strings"
+
+	definitions "github.com/rahultripathidev/docker-utility/types"
+	"github.com/spf13/viper"
 )
 
 // Variables Of all the decelerations that are loaded
@@ -55,10 +56,11 @@ func setEnv(object map[string]string) {
 
 // init initializes the config directory , the default is $HOME/.orchestrator/configuration
 func init() {
-	//ConfigDir = "./configuration"
-	//ConfigDir = func() string { HOME , _ := os.UserHomeDir()
-	//	return HOME }() + "/.orchestrator/configuration"
-	ConfigDir = "/home/ubuntu/.orchestrator/configuration"
+	ConfigDir = func() string {
+		HOME, _ := os.UserHomeDir()
+		return HOME
+	}() + "/.orchestrator/configuration"
+	// ConfigDir = "/home/ubuntu/.orchestrator/configuration"
 	ReadAndUnmarshal("configv3", "json", &XerxesHost, "config.xerxes_host")
 }
 
