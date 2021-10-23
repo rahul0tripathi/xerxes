@@ -15,7 +15,7 @@ const (
 )
 
 func main() {
-	listen, err := net.Listen("tcp", fmt.Sprintf("%s:%s", "localhost", PORT))
+	listen, err := net.Listen("tcp", fmt.Sprintf("%s:%s", "0.0.0.0", PORT))
 	color.Style{color.FgCyan, color.OpBold}.Printf("[%s] Server Started \n", time.Now().String())
 	if err != nil {
 		panic(err)

@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 )
 
@@ -20,7 +21,7 @@ var (
 	_previousSystem uint64 = 0.0
 )
 
-func GetFlakeLogs(flake definitions.FlakeDef,tail string) (err error) {
+func GetFlakeLogs(flake definitions.FlakeDef, tail string) (err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	dockerDaemon, err := dockerClient.NewDockerClient(flake.HostId)
@@ -31,7 +32,7 @@ func GetFlakeLogs(flake definitions.FlakeDef,tail string) (err error) {
 		ShowStdout: true,
 		ShowStderr: true,
 		Timestamps: true,
-		Tail: tail,
+		Tail:       tail,
 	})
 	if err != nil {
 		return err
@@ -41,6 +42,26 @@ func GetFlakeLogs(flake definitions.FlakeDef,tail string) (err error) {
 		return err
 	}
 	return nil
+}
+func GetFlakeLogsOnce(flake definitions.FlakeDef, tail string) (logs string,err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	dockerDaemon, err := dockerClient.NewDockerClient(flake.HostId)
+	if err != nil {
+		return "",err
+	}
+	reader, err := dockerDaemon.ContainerLogs(ctx, flake.ContainerId, types.ContainerLogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+		Timestamps: true,
+		Tail:       tail,
+	})
+	if err != nil {
+		return "",err
+	}
+	buf := new(strings.Builder)
+	_ , err = io.Copy(buf, reader)
+	return buf.String(),nil
 }
 func calculateCPUPercentUnix(previousCPU, previousSystem uint64, v *types.StatsJSON) float64 {
 	var (
@@ -99,4 +120,27 @@ func GetFlakeStats(flake definitions.FlakeDef) (err error) {
 
 	}
 	return nil
+}
+func GetFlakeStatsOnce(flake definitions.FlakeDef) (flakeStats definitions.FlakeStats) {
+	ctx, _ := context.WithCancel(context.Background())
+	dockerDaemon, err := dockerClient.NewDockerClient(flake.HostId)
+	if err != nil {
+		return
+	}
+	stats, err := dockerDaemon.ContainerStats(ctx, flake.ContainerId, false)
+	if err != nil {
+		return
+	}
+	var p = make([]byte, 5024)
+	var n int
+	var _stats types.StatsJSON
+	n, err = stats.Body.Read(p)
+	err = json.Unmarshal(p[:n], &_stats)
+	if err != nil {
+		return
+	}
+	flakeStats.MemUsage = fmt.Sprintf("%s / %s  ", units.BytesSize(float64(_stats.MemoryStats.Usage)), units.BytesSize(float64(_stats.MemoryStats.Limit)))
+	flakeStats.CpuPer = fmt.Sprintf("%.2f", calculateCPUPercentUnix(_previousCPU, _previousSystem, &_stats))
+	flakeStats.Network = calculateNetwork(_stats.Networks)
+	return
 }

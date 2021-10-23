@@ -8,6 +8,11 @@ type FlakeDef struct {
 	Ip string `json:"ip"`
 	Port string `json:"port"`
 }
+type FlakeStats struct {
+	MemUsage string
+	CpuPer string
+    Network string
+}
 type HealthDef struct {
 	Endpoint string `mapstructure:"endpoint"`
 }

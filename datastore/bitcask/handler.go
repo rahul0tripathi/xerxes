@@ -10,16 +10,18 @@ var (
 	err       error
 )
 
-func InitClient() {
+func InitClient() error {
 	BitClient, err = bitcask.Open(config.BitConf.Dbpath)
 	if err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
 
-func GracefulClose() {
+func GracefulClose() error {
 	err = BitClient.Close()
 	if err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
